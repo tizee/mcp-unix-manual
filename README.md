@@ -30,6 +30,8 @@ uv install -e .
 
 ```bash
 mcp install unix_manual_server.py
+# uv
+uv run mcp install unix_manual_server.py
 ```
 
 ## Usage
