@@ -215,6 +215,73 @@ def test_search_help_documentation_no_help_found(mock_logger):
             assert mock_safe_execute.call_count == 3
             mock_logger.warning.assert_called_with("No help documentation found for command")
 
+def test_get_command_documentation_with_script_path(mock_logger):
+    """Test that script paths like 'python script.py' are handled correctly"""
+    with patch('unix_manual_server.get_command_path') as mock_get_path, \
+         patch('unix_manual_server.search_help_documentation') as mock_search_help, \
+         patch('unix_manual_server.safe_execute') as mock_safe_execute:
+
+        command = "python script.py"
+
+        # Configure mocks
+        mock_get_path.return_value = "/usr/bin/python"
+
+        # We expect it to try the subcommand first (script.py)
+        mock_safe_execute.return_value = None  # subcommand help fails
+
+        # Then fall back to main command
+        mock_search_help.return_value = "Help output for 'python':\n\nPYTHON HELP CONTENT"
+
+        result = unix_manual_server.get_command_documentation(command, prefer_economic=True)
+
+        assert "Help output for 'python'" in result
+        mock_logger.debug.assert_any_call("Detected subcommand: 'script.py', will try 'python script.py' first")
+
+@pytest.mark.parametrize(
+    "command,has_subcommand,subcommand_help_succeeds,expected_result",
+    [
+        # Command with subcommand and help for subcommand succeeds
+        ("uv run test.py", True, True, "Help output for 'uv run'"),
+        # Command with subcommand but help for subcommand fails, fallback to main command
+        ("git commit file.txt", True, False, "Help output for 'git'"),
+        # Command without subcommand
+        ("ls -la", False, False, "Help output for 'ls'"),
+    ]
+)
+def test_get_command_documentation_with_subcommand(command, has_subcommand, subcommand_help_succeeds,
+                                                  expected_result, mock_logger):
+    """Test get_command_documentation with subcommands"""
+    with patch('unix_manual_server.get_command_path') as mock_get_path, \
+         patch('unix_manual_server.search_help_documentation') as mock_search_help, \
+         patch('unix_manual_server.safe_execute') as mock_safe_execute:
+
+        # Configure mocks
+        mock_get_path.return_value = "/usr/bin/{}".format(command.split()[0])
+
+        if has_subcommand:
+            if subcommand_help_succeeds:
+                # Subcommand help succeeds
+                subcommand_help_mock = MagicMock()
+                subcommand_help_mock.returncode = 0
+                subcommand_help_mock.stdout = "SUBCOMMAND HELP CONTENT"
+
+                # The first three calls will be for the subcommand with --help, -h, help
+                # Return success for the first one to simulate --help working
+                mock_safe_execute.side_effect = [subcommand_help_mock, None, None]
+            else:
+                # Subcommand help fails, main command help succeeds
+                mock_safe_execute.return_value = None
+                mock_search_help.return_value = f"Help output for '{command.split()[0]}':\n\nMAIN COMMAND HELP CONTENT"
+        else:
+            # No subcommand, main command help succeeds
+            mock_search_help.return_value = f"Help output for '{command.split()[0]}':\n\nMAIN COMMAND HELP CONTENT"
+
+        result = unix_manual_server.get_command_documentation(command, prefer_economic=True)
+
+        assert expected_result in result
+
+        if has_subcommand:
+            mock_logger.debug.assert_any_call(f"Detected subcommand: '{command.split()[1]}', will try '{command.split()[0]} {command.split()[1]}' first")
 
 @pytest.mark.parametrize(
     "command,valid_name,command_exists,prefer_economic,man_section,expected_result",

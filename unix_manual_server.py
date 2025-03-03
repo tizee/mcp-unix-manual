@@ -138,6 +138,14 @@ def get_command_documentation(command: str, prefer_economic: bool = True, man_se
     main_command = parts[0]  # Extract the base command
     logger.debug(f"Main command: {main_command}")
 
+    # Check if there's a subcommand (at least 2 parts and not an option)
+    has_subcommand = len(parts) > 1 and not parts[1].startswith('-')
+    subcommand = parts[1] if has_subcommand else None
+    cmd_with_subcommand = f"{main_command} {subcommand}" if has_subcommand else None
+
+    if has_subcommand:
+        logger.debug(f"Detected subcommand: '{subcommand}', will try '{cmd_with_subcommand}' first")
+
     # Validate command name (basic check to prevent injection)
     if not re.match(r'^[a-zA-Z0-9_\.-]+$', main_command):
         logger.warning(f"Invalid command name: '{main_command}'")
@@ -149,9 +157,33 @@ def get_command_documentation(command: str, prefer_economic: bool = True, man_se
         logger.warning(f"Command not found: '{main_command}'")
         return f"Command not found: '{main_command}'"
 
+    # Try economic approach for subcommand first if available
+    if has_subcommand and prefer_economic:
+        logger.debug(f"Trying economic approach for subcommand: {cmd_with_subcommand}")
+
+        # Try --help for subcommand
+        help_cmd = safe_execute([command_path, subcommand, "--help"], timeout=5)
+        if help_cmd and help_cmd.stdout and help_cmd.returncode < 2:
+            logger.info(f"Found help docs using --help for subcommand {cmd_with_subcommand}")
+            return f"Help output for '{cmd_with_subcommand}':\n\n{help_cmd.stdout.strip()}"
+
+        # Try -h for subcommand
+        help_cmd = safe_execute([command_path, subcommand, "-h"], timeout=5)
+        if help_cmd and help_cmd.stdout and help_cmd.returncode < 2:
+            logger.info(f"Found help docs using -h for subcommand {cmd_with_subcommand}")
+            return f"Help output for '{cmd_with_subcommand}':\n\n{help_cmd.stdout.strip()}"
+
+        # Try help subcommand for subcommand
+        help_cmd = safe_execute([command_path, subcommand, "help"], timeout=5)
+        if help_cmd and help_cmd.stdout and help_cmd.returncode < 2:
+            logger.info(f"Found help docs using help subcommand for {cmd_with_subcommand}")
+            return f"Help output for '{cmd_with_subcommand}':\n\n{help_cmd.stdout.strip()}"
+
+        logger.debug(f"No help documentation found for subcommand {cmd_with_subcommand}, falling back to main command")
+
     # Try economic approach for the main command
     if prefer_economic:
-        logger.debug(f"Trying economic approach first for {main_command}")
+        logger.debug(f"Trying economic approach for main command: {main_command}")
         help_result = search_help_documentation(main_command, command_path)
         if help_result:
             return help_result
