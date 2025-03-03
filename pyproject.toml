@@ -1,6 +1,6 @@
 [project]
 name = "mcp-unix-manual"
-version = "0.1.0"
+version = "1.0.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -9,3 +9,12 @@ dependencies = [
 ]
 [project.scripts]
 mcp-unix-manual = "unix_manual_server:main"
+
+[tool.uv]
+dev-dependencies = ["ruff>=0.9.9", "pytest>=8.0.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"

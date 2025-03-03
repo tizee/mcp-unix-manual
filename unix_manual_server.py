@@ -91,7 +91,7 @@ def search_help_documentation(main_command, command_path):
             # Add debug output to see what we're getting
             logger.debug(f"--help output did not match help text pattern:\n{output[:200]}...")
 
-    # Try -h (similar changes needed for this block)
+    # Try -h
     logger.debug(f"Trying -h for {main_command}")
     help_result = safe_execute([command_path, "-h"], timeout=5)
     if help_result and help_result.returncode < 2 and help_result.stdout.strip():
@@ -111,6 +111,8 @@ def search_help_documentation(main_command, command_path):
         if re.search(r'usage|options|help|Usage|Options|Help|USAGE|OPTIONS|HELP', output, re.IGNORECASE):
             logger.info(f"Found help documentation using help subcommand for {main_command}")
             return f"Help output for '{main_command}':\n\n{output}"
+        else:
+            logger.debug(f"help subcommand output did not match help text pattern:\n{output[:200]}...")
 
     # If we get here, no valid help documentation was found
     logger.warning(f"No help documentation found for {main_command}")
