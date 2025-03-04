@@ -78,8 +78,12 @@ Logs are saved to `unix-manual-server.log` in the same directory as the script, 
 
 - use `@modelcontextprotocol/inspector` with `npx` under the hood.
 
-```py
+```zsh
 uv run mcp dev unix_manual_server.py
+```
+
+```
+npx @modelcontextprotocol/inspector uv run unix_manual_server.py
 ```
 
 ## License
