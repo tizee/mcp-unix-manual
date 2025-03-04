@@ -76,6 +76,12 @@ The server takes precautions to prevent command injection by:
 
 Logs are saved to `unix-manual-server.log` in the same directory as the script, useful for debugging.
 
+- use `@modelcontextprotocol/inspector` with `npx` under the hood.
+
+```py
+uv run mcp dev unix_manual_server.py
+```
+
 ## License
 
 MIT
