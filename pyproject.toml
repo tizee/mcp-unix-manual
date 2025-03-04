@@ -1,7 +1,7 @@
 [project]
 name = "mcp-unix-manual"
 version = "1.1.0"
-description = "Add your description here"
+description = "A MCP server for getting command help manual"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
